@@ -310,18 +310,24 @@ export async function GET() {
       partidasMap.get(item).insumos.push({ ...row });
     });
 
-    // Ordenar partidas numéricamente por especialidad (OE.1, OE.2... OE.10, no lexicográfico)
-    const extractEspNum = (item: string): number => {
-      const stripped = item.replace(/^.*[Oo]\.?[Ee]\./, '');
-      const m = stripped.match(/^(\d+)/);
-      return m ? parseInt(m[1], 10) : 9999;
+    // Ordenar partidas numéricamente (sort natural multi-nivel: OE.1.1.1.6 < OE.1.1.1.11)
+    const parseItemParts = (item: string): number[] => {
+      if (!item || item === '[SIN PARTIDA]') return [9999];
+      const clean = item.replace(/^[A-Za-z]+\./, '').trim();
+      return clean.split('.').map(p => { const n = parseInt(p, 10); return isNaN(n) ? 9999 : n; });
     };
-    const sortedPartidas = Array.from(partidasMap.values()).sort((a: any, b: any) => {
-      const ea = extractEspNum(a.item);
-      const eb = extractEspNum(b.item);
-      if (ea !== eb) return ea - eb;
-      return String(a.item).localeCompare(String(b.item));
-    });
+    const compareItemsNatural = (a: string, b: string): number => {
+      const pa = parseItemParts(a);
+      const pb = parseItemParts(b);
+      for (let i = 0; i < Math.max(pa.length, pb.length); i++) {
+        const diff = (pa[i] ?? 9999) - (pb[i] ?? 9999);
+        if (diff !== 0) return diff;
+      }
+      return 0;
+    };
+    const sortedPartidas = Array.from(partidasMap.values()).sort((a: any, b: any) =>
+      compareItemsNatural(String(a.item), String(b.item))
+    );
 
     sortedPartidas.forEach((partida: any, idx: number) => {
       if (idx > 0) {
@@ -397,10 +403,18 @@ export async function GET() {
       let totalNuevo = 0;
 
       // Agrupar insumos por tipo: MANO DE OBRA → MATERIALES → EQUIPO
-      const TIPO_ORDER_G: Record<string, number> = { 'MANO DE OBRA': 1, 'MATERIALES': 2, 'EQUIPO': 3 };
+      const normalizeTipo = (tipo: any): string => {
+        const t = (tipo || '').toUpperCase().trim();
+        if (t === 'MANO DE OBRA') return 'MANO DE OBRA';
+        if (t === 'MATERIALES') return 'MATERIALES';
+        if (t === 'EQUIPO' || t === 'EQUIPOS') return 'EQUIPO';
+        if (t.includes('SUB') || t.includes('CONTRAT')) return 'SUB CONTRATOS';
+        return 'OTROS';
+      };
+      const TIPO_ORDER_G: Record<string, number> = { 'MANO DE OBRA': 1, 'MATERIALES': 2, 'EQUIPO': 3, 'SUB CONTRATOS': 4, 'OTROS': 5 };
       const tipoGroupsG = new Map<string, any[]>();
       for (const ins of partida.insumos) {
-        const key = (ins.tipo || 'OTROS').toUpperCase().trim();
+        const key = normalizeTipo(ins.tipo);
         if (!tipoGroupsG.has(key)) tipoGroupsG.set(key, []);
         tipoGroupsG.get(key)!.push(ins);
       }
