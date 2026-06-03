@@ -1,0 +1,68 @@
+# ============================================================
+# Archivos de datos / backups en la raíz (no en frontend/)
+# ============================================================
+/*.sql
+/*.json
+/*.csv
+/*.xlsx
+/*.xls
+~$*.xlsx
+/*.zip
+backup/
+DATA_LAST/
+ANALISIS_Y_PROPUESTAS/
+"Nueva carpeta/"
+Nueva carpeta/
+pages/
+
+# Scripts de análisis/migración en la raíz (temporales)
+/*.js
+/*.py
+analizar_*/
+check_*/
+scratch/
+
+# Archivos temporales de resultados
+resultado*.txt
+missing_*.txt
+reporte_*.txt
+*.txt
+
+# Archivos temporales de código
+temp_*.tsx
+temp_*.ts
+temp_*.js
+
+# Bases de datos locales
+*.sqlite
+*.db
+
+# Binarios
+*.pdf
+
+# Dependencias raíz (no del frontend)
+/node_modules/
+/package-lock.json
+/package.json
+/skills-lock.json
+
+# Python virtualenv
+venv*/
+__pycache__/
+*.pyc
+
+# Distribución / empaquetado Hostinger
+dist_hostinger/
+
+# Variables de entorno con credenciales
+.env
+.env.*
+!.env.example
+
+# Agentes / IDE
+.claude/
+.agents/
+.vscode/
+
+# Supabase CLI local
+supabase/.temp/
