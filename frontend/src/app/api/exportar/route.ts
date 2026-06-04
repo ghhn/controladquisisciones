@@ -132,7 +132,13 @@ export async function GET() {
           p.unidad          AS partida_unidad,
           p.cantidad_p      AS metrado_fijo,
           COALESCE(p.rendimiento_p, '1') AS rendimiento,
-          a.tipo,
+          CASE
+            WHEN UPPER(TRIM(COALESCE(a.tipo,''))) IN ('MATERIALES','MANO DE OBRA','EQUIPO')
+                 THEN UPPER(TRIM(a.tipo))
+            WHEN a.unidad = 'hh'                           THEN 'MANO DE OBRA'
+            WHEN a.unidad = 'hm' OR a.unidad LIKE '%mo%'  THEN 'EQUIPO'
+            ELSE 'MATERIALES'
+          END AS tipo,
           a.descripcion_insumo,
           a.unidad          AS insumo_unidad,
           a.cantidad_p      AS cant_orig,
@@ -175,11 +181,13 @@ export async function GET() {
         ORDER BY
           esp_orden,
           p.item,
-          CASE UPPER(COALESCE(a.tipo,''))
-            WHEN 'MANO DE OBRA' THEN 1
-            WHEN 'MATERIALES'   THEN 2
-            WHEN 'EQUIPO'       THEN 3
-            ELSE 4
+          CASE
+            WHEN UPPER(TRIM(COALESCE(a.tipo,''))) = 'MANO DE OBRA' THEN 1
+            WHEN UPPER(TRIM(COALESCE(a.tipo,''))) = 'MATERIALES'   THEN 2
+            WHEN UPPER(TRIM(COALESCE(a.tipo,''))) = 'EQUIPO'       THEN 3
+            WHEN a.unidad = 'hh'                                   THEN 1
+            WHEN a.unidad = 'hm' OR a.unidad LIKE '%mo%'           THEN 3
+            ELSE 2
           END,
           a.id
       `),

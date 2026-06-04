@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 
 type InsumoAPU = {
   id: number;
@@ -8,6 +8,20 @@ type InsumoAPU = {
   parcial_original: number;
   precio_original: number;
   cantidad_2: number;
+  tipo: string | null;
+};
+
+const GRUPO_ORDEN: Record<string, number> = {
+  'MATERIALES': 0,
+  'MANO DE OBRA': 1,
+  'EQUIPO': 2,
+};
+
+const GRUPO_COLORES: Record<string, { bg: string; color: string }> = {
+  'MATERIALES':   { bg: '#fef9c3', color: '#854d0e' },
+  'MANO DE OBRA': { bg: '#dcfce7', color: '#166534' },
+  'EQUIPO':       { bg: '#e0f2fe', color: '#075985' },
+  'OTROS':        { bg: '#f1f5f9', color: '#475569' },
 };
 
 export default function ApuComparative({
@@ -78,49 +92,78 @@ export default function ApuComparative({
             </tr>
           </thead>
           <tbody>
-            {insumos.map((ins, index) => {
-              const cant = Number(ins.incidencia_original) || 0;
-              const inci_x_m = cant * metradoFijo;
-              let precio = Number(ins.precio_original) || 0;
-              
-              let parcial = cant * precio;
-              if (ins.unidad.includes('%')) {
-                const parcialOriginal = Number(ins.parcial_original) || 0;
-                precio = cant > 0 ? (parcialOriginal * 100) / cant : 0;
-                parcial = parcialOriginal;
-              }
-              
-              parcial = parseFloat(parcial.toFixed(2));
-              totalAntiguo += parcial;
+            {(() => {
+              const rows: React.ReactNode[] = [];
+              let lastTipo: string | null | undefined = undefined;
+              insumos.forEach((ins, index) => {
+                const tipoLabel = ins.tipo?.trim().toUpperCase() || 'OTROS';
+                const estiloGrupo = GRUPO_COLORES[tipoLabel] || GRUPO_COLORES['OTROS'];
 
-              const isSelected = ins.descripcion === selectedInsumoName;
-              return (
-                <tr key={`${ins.id}-${index}`} style={{background: isSelected ? '#fef08a' : 'transparent', borderBottom: '1px solid #e2e8f0'}}>
-                  <td style={{padding: '4px', maxWidth: '150px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis'}} title={ins.descripcion}>
-                    {ins.descripcion}
-                  </td>
-                  <td style={{padding: '4px', textAlign: 'center'}}>{ins.unidad}</td>
-                  <td style={{
-                    padding: '4px', 
-                    textAlign: 'right', 
-                    background: '#fef08a', 
-                    fontWeight: isSelected ? 'bold' : 'normal'
-                  }}>
-                    {cant.toFixed(4)}
-                  </td>
-                  <td style={{
-                    padding: '4px', 
-                    textAlign: 'right', 
-                    background: '#fef08a', 
-                    fontWeight: isSelected ? 'bold' : 'normal'
-                  }}>
-                    {inci_x_m.toFixed(4)}
-                  </td>
-                  <td style={{padding: '4px', textAlign: 'right'}}>{precio.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 4})}</td>
-                  <td style={{padding: '4px', textAlign: 'right', fontWeight: isSelected ? 'bold' : 'normal'}}>{parcial.toFixed(4)}</td>
-                </tr>
-              );
-            })}
+                if (tipoLabel !== lastTipo) {
+                  rows.push(
+                    <tr key={`grupo-ant-${tipoLabel}-${index}`}>
+                      <td colSpan={6} style={{
+                        background: estiloGrupo.bg,
+                        color: estiloGrupo.color,
+                        fontWeight: 'bold',
+                        fontSize: '0.75rem',
+                        padding: '3px 6px',
+                        letterSpacing: '0.05em',
+                        textTransform: 'uppercase',
+                        borderTop: '1px solid #cbd5e1',
+                        borderBottom: '1px solid #cbd5e1',
+                      }}>
+                        {tipoLabel}
+                      </td>
+                    </tr>
+                  );
+                  lastTipo = tipoLabel;
+                }
+
+                const cant = Number(ins.incidencia_original) || 0;
+                const inci_x_m = cant * metradoFijo;
+                let precio = Number(ins.precio_original) || 0;
+
+                let parcial = cant * precio;
+                if (ins.unidad.includes('%')) {
+                  const parcialOriginal = Number(ins.parcial_original) || 0;
+                  precio = cant > 0 ? (parcialOriginal * 100) / cant : 0;
+                  parcial = parcialOriginal;
+                }
+
+                parcial = parseFloat(parcial.toFixed(2));
+                totalAntiguo += parcial;
+
+                const isSelected = ins.descripcion === selectedInsumoName;
+                rows.push(
+                  <tr key={`${ins.id}-${index}`} style={{background: isSelected ? '#fef08a' : 'transparent', borderBottom: '1px solid #e2e8f0'}}>
+                    <td style={{padding: '4px', maxWidth: '150px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis'}} title={ins.descripcion}>
+                      {ins.descripcion}
+                    </td>
+                    <td style={{padding: '4px', textAlign: 'center'}}>{ins.unidad}</td>
+                    <td style={{
+                      padding: '4px',
+                      textAlign: 'right',
+                      background: '#fef08a',
+                      fontWeight: isSelected ? 'bold' : 'normal'
+                    }}>
+                      {cant.toFixed(4)}
+                    </td>
+                    <td style={{
+                      padding: '4px',
+                      textAlign: 'right',
+                      background: '#fef08a',
+                      fontWeight: isSelected ? 'bold' : 'normal'
+                    }}>
+                      {inci_x_m.toFixed(4)}
+                    </td>
+                    <td style={{padding: '4px', textAlign: 'right'}}>{precio.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 4})}</td>
+                    <td style={{padding: '4px', textAlign: 'right', fontWeight: isSelected ? 'bold' : 'normal'}}>{parcial.toFixed(4)}</td>
+                  </tr>
+                );
+              });
+              return rows;
+            })()}
           </tbody>
           <tfoot>
             <tr>
@@ -158,84 +201,112 @@ export default function ApuComparative({
             </tr>
           </thead>
           <tbody>
-            {insumos.map((ins, index) => {
-              const cantOrig = Number(ins.incidencia_original) || 0;
-              const parcialOrig = Number(ins.parcial_original) || 0;
-              let precioOrig = Number(ins.precio_original) || 0;
-              if (ins.unidad.includes('%')) {
-                precioOrig = cantOrig > 0 ? (parcialOrig * 100) / cantOrig : 0;
-              }
+            {(() => {
+              const rows: React.ReactNode[] = [];
+              let lastTipo: string | null | undefined = undefined;
+              insumos.forEach((ins, index) => {
+                const tipoLabel = ins.tipo?.trim().toUpperCase() || 'OTROS';
+                const estiloGrupo = GRUPO_COLORES[tipoLabel] || GRUPO_COLORES['OTROS'];
 
-              const isSelected = ins.descripcion === selectedInsumoName;
+                if (tipoLabel !== lastTipo) {
+                  rows.push(
+                    <tr key={`grupo-new-${tipoLabel}-${index}`}>
+                      <td colSpan={6} style={{
+                        background: estiloGrupo.bg,
+                        color: estiloGrupo.color,
+                        fontWeight: 'bold',
+                        fontSize: '0.75rem',
+                        padding: '3px 6px',
+                        letterSpacing: '0.05em',
+                        textTransform: 'uppercase',
+                        borderTop: '1px solid #bfdbfe',
+                        borderBottom: '1px solid #bfdbfe',
+                      }}>
+                        {tipoLabel}
+                      </td>
+                    </tr>
+                  );
+                  lastTipo = tipoLabel;
+                }
 
-              const cantNueva = isSelected ? modifiedIncidencia : cantOrig;
-              const inci_x_m = cantNueva * metradoFijo;
-              const precioNuevo = isSelected ? ppp : precioOrig;
-              
-              let parcialNuevo = cantNueva * precioNuevo;
-              if (ins.unidad.includes('%')) {
-                parcialNuevo = parcialNuevo / 100;
-              }
-              
-              parcialNuevo = parseFloat(parcialNuevo.toFixed(2));
+                const cantOrig = Number(ins.incidencia_original) || 0;
+                const parcialOrig = Number(ins.parcial_original) || 0;
+                let precioOrig = Number(ins.precio_original) || 0;
+                if (ins.unidad.includes('%')) {
+                  precioOrig = cantOrig > 0 ? (parcialOrig * 100) / cantOrig : 0;
+                }
 
-              totalNuevo += parcialNuevo;
+                const isSelected = ins.descripcion === selectedInsumoName;
 
-              return (
-                <tr key={`${ins.id}-${index}`} style={{background: isSelected ? '#bfdbfe' : 'transparent', borderBottom: '1px solid #e2e8f0'}}>
-                  <td style={{padding: '4px', maxWidth: '150px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis'}} title={ins.descripcion}>
-                    {ins.descripcion}
-                  </td>
-                  <td style={{padding: '4px', textAlign: 'center'}}>{ins.unidad}</td>
+                const cantNueva = isSelected ? modifiedIncidencia : cantOrig;
+                const inci_x_m = cantNueva * metradoFijo;
+                const precioNuevo = isSelected ? ppp : precioOrig;
 
-                  {/* EDITABLE CANTIDAD FOR SELECTED INSUMO */}
-                  <td style={{
-                    padding: '4px', 
-                    textAlign: 'right', 
-                    background: '#bfdbfe',
-                    fontWeight: isSelected ? 'bold' : 'normal'
-                  }}>
-                    {isSelected ? (
-                      <input
-                        type="number"
-                        step="0.000001"
-                        value={modifiedIncidencia}
-                        onChange={(e) => onIncidenciaChange(parseFloat(e.target.value) || 0)}
-                        onBlur={onIncidenciaBlur}
-                        style={{
-                          width: '80px', 
-                          textAlign: 'right', 
-                          padding: '2px', 
-                          border: '1px solid #2563eb', 
-                          fontWeight: 'bold',
-                          background: '#eff6ff'
-                        }}
-                      />
-                    ) : (
-                      cantNueva.toFixed(4)
-                    )}
-                  </td>
+                let parcialNuevo = cantNueva * precioNuevo;
+                if (ins.unidad.includes('%')) {
+                  parcialNuevo = parcialNuevo / 100;
+                }
 
-                  <td style={{
-                    padding: '4px', 
-                    textAlign: 'right', 
-                    background: '#bfdbfe', 
-                    fontWeight: isSelected ? 'bold' : 'normal', 
-                    color: isSelected ? '#1e40af' : 'inherit'
-                  }}>
-                    {inci_x_m.toFixed(4)}
-                  </td>
+                parcialNuevo = parseFloat(parcialNuevo.toFixed(2));
+                totalNuevo += parcialNuevo;
 
-                  <td style={{padding: '4px', textAlign: 'right', fontWeight: isSelected ? 'bold' : 'normal', color: isSelected ? '#166534' : 'inherit'}}>
-                    {precioNuevo.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 4})}
-                  </td>
+                rows.push(
+                  <tr key={`${ins.id}-${index}`} style={{background: isSelected ? '#bfdbfe' : 'transparent', borderBottom: '1px solid #e2e8f0'}}>
+                    <td style={{padding: '4px', maxWidth: '150px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis'}} title={ins.descripcion}>
+                      {ins.descripcion}
+                    </td>
+                    <td style={{padding: '4px', textAlign: 'center'}}>{ins.unidad}</td>
 
-                  <td style={{padding: '4px', textAlign: 'right', fontWeight: isSelected ? 'bold' : 'normal', color: isSelected ? '#1d4ed8' : 'inherit'}}>
-                    {parcialNuevo.toFixed(4)}
-                  </td>
-                </tr>
-              );
-            })}
+                    {/* EDITABLE CANTIDAD FOR SELECTED INSUMO */}
+                    <td style={{
+                      padding: '4px',
+                      textAlign: 'right',
+                      background: '#bfdbfe',
+                      fontWeight: isSelected ? 'bold' : 'normal'
+                    }}>
+                      {isSelected ? (
+                        <input
+                          type="number"
+                          step="0.000001"
+                          value={modifiedIncidencia}
+                          onChange={(e) => onIncidenciaChange(parseFloat(e.target.value) || 0)}
+                          onBlur={onIncidenciaBlur}
+                          style={{
+                            width: '80px',
+                            textAlign: 'right',
+                            padding: '2px',
+                            border: '1px solid #2563eb',
+                            fontWeight: 'bold',
+                            background: '#eff6ff'
+                          }}
+                        />
+                      ) : (
+                        cantNueva.toFixed(4)
+                      )}
+                    </td>
+
+                    <td style={{
+                      padding: '4px',
+                      textAlign: 'right',
+                      background: '#bfdbfe',
+                      fontWeight: isSelected ? 'bold' : 'normal',
+                      color: isSelected ? '#1e40af' : 'inherit'
+                    }}>
+                      {inci_x_m.toFixed(4)}
+                    </td>
+
+                    <td style={{padding: '4px', textAlign: 'right', fontWeight: isSelected ? 'bold' : 'normal', color: isSelected ? '#166534' : 'inherit'}}>
+                      {precioNuevo.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 4})}
+                    </td>
+
+                    <td style={{padding: '4px', textAlign: 'right', fontWeight: isSelected ? 'bold' : 'normal', color: isSelected ? '#1d4ed8' : 'inherit'}}>
+                      {parcialNuevo.toFixed(4)}
+                    </td>
+                  </tr>
+                );
+              });
+              return rows;
+            })()}
           </tbody>
           <tfoot>
             <tr>
