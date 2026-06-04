@@ -54,9 +54,9 @@ export async function POST(request: Request) {
         if (update.precio_c !== undefined && update.precio_c !== null) {
           await client.query(
             `UPDATE acus 
-             SET cantidad_c = $1,
-                 precio_c = $3,
-                 parcial_c = ROUND(($1 * $3)::numeric, 2)
+             SET cantidad_c = $1::numeric,
+                 precio_c = $3::numeric,
+                 parcial_c = ROUND(($1::numeric * $3::numeric), 2)
              WHERE id = $2`,
             [update.cantidad_2, update.id, update.precio_c]
           );
